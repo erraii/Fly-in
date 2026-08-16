@@ -1,34 +1,31 @@
 import sys
-from pydantic import ValidationError
-from config import ConfigParser
+from config import ConfigParser, ConfigParseError
+from solver import Graph, DijkstraSolver
 
 
 def main() -> None:
-    #   Eray Input
-    #   settings = load_settings("settings.json")
-    """Load configuration and run the application."""
     if len(sys.argv) != 2:
-        print("Usage: python3 a_maze_ing.py config.txt")
+        print("Usage: python3 fly_in.py <map_file>")
         return
+
+    map_path = sys.argv[1]
 
     try:
-        raw_settings = ConfigParser(sys.argv[1]).parse()
-        # map_config = .model_validate(raw_settings)
-
-    except FileNotFoundError as err:
-        print(f"File error: {err}")
+        config = ConfigParser(map_path).parse()
+        # print(config)
+    except (FileNotFoundError, ConfigParseError) as error:
+        print(f"Error: {error}")
         return
 
-    except ValidationError as err:
-        print(f"Config validation error:\n{err}")
-        return
-
-    except ValueError as err:
-        print(f"Config parser error: {err}")
-        return
-
-    # app = MazeApplication(settings)
-    # app.run()
+    # Sonraki aşama:
+    # graph = Graph(config)
+    graph = Graph(config)
+    graph.construct()
+    distances = DijkstraSolver(graph).solve(config.start_hub)
+    print(distances)
+    
+    # simulator = Simulator(graph, config.nb_drones)
+    # simulator.run()
 
 
 if __name__ == "__main__":

@@ -1,0 +1,5 @@
+.gitignore
+config_requirements
+testenv/*
+maps/challenger/test_map.txt
+src/fly_in/config/__pycache__/

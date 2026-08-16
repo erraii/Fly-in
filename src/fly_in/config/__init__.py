@@ -1,9 +1,11 @@
-# from .model import MazeConfig, GeneratorName
-from .parser import ConfigParser
+from .parser import ConfigParser, ConfigParseError
+from .model import MapConfig, Hub, ZoneTypes
 
 
 __all__ = [
     "ConfigParser",
-    # "MazeConfig",
-    # "GeneratorName",
+    "ConfigParseError",
+    "MapConfig",
+    "Hub",
+    "ZoneTypes"
 ]
