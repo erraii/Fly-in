@@ -1,6 +1,7 @@
 import sys
 from config import ConfigParser, ConfigParseError
 from solver import Graph, DijkstraSolver
+from simulation import Drone
 
 
 def main() -> None:
@@ -21,9 +22,18 @@ def main() -> None:
     # graph = Graph(config)
     graph = Graph(config)
     graph.construct()
-    distances = DijkstraSolver(graph).solve(config.start_hub)
-    print(distances)
-    
+    dist_path = DijkstraSolver(graph).solve(config.start_hub)
+    print(dist_path)
+
+    drone_list: list[Drone] = []
+
+    for i in range(1, config.nb_drones + 1):
+        drone = Drone(i, config.start_hub)
+        drone_list.append(drone)
+
+    for drone in drone_list:
+        print(drone.current_hub)
+
     # simulator = Simulator(graph, config.nb_drones)
     # simulator.run()
 
