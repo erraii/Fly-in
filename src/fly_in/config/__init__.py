@@ -1,5 +1,5 @@
 from .parser import ConfigParser, ConfigParseError
-from .model import MapConfig, Hub, ZoneTypes
+from .model import MapConfig, Hub, Connection, ZoneTypes
 
 
 __all__ = [
@@ -7,5 +7,6 @@ __all__ = [
     "ConfigParseError",
     "MapConfig",
     "Hub",
+    "Connection",
     "ZoneTypes"
 ]

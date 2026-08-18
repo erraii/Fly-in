@@ -7,10 +7,17 @@ class DijkstraSolver:
 
     def __init__(self, graph: Graph) -> None:
         self.graph = graph
+        self.cache: dict[
+            str,
+            dict[str, tuple[float, str | None]],
+        ] = {}
 
-    def solve(self, source: str) -> dict[str, tuple[float, str]]:
+    def solve(self, source: str) -> dict[str, tuple[float, str | None]]:
         """Calculate shortest distances and previous paths
         from source to every reachable hub."""
+
+        if source in self.cache:
+            return self.cache[source]
 
         unvisited = list(self.graph.graph.keys())
 
@@ -20,7 +27,7 @@ class DijkstraSolver:
             if hub == source:
                 dist_path[hub] = (0.0, None)
             else:
-                dist_path[hub] = (float("inf"), None)
+                dist_path[hub] = (float(inf), None)
 
         while unvisited:
             current = min(
@@ -39,4 +46,29 @@ class DijkstraSolver:
 
             unvisited.remove(current)
 
+        self.cache[source] = dist_path
         return dist_path
+
+    def get_path(
+        self,
+        source: str,
+        destination: str,
+    ) -> list[str]:
+        """Return shortest path from source to destination."""
+        dist_path = self.solve(source)
+
+        if destination not in dist_path:
+            return []
+
+        if dist_path[destination][0] == inf:
+            return []
+
+        path: list[str] = []
+        current: str | None = destination
+
+        while current is not None:
+            path.append(current)
+            current = dist_path[current][1]
+
+        path.reverse()
+        return path
