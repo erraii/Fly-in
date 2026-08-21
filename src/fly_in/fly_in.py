@@ -1,7 +1,8 @@
 import sys
 from config import ConfigParser, ConfigParseError
 from solver import Graph, DijkstraSolver
-from simulation import Drone, SimulationState, Simulator
+from simulation import Drone, Simulator
+from visualization import Visualizer
 
 
 def main() -> None:
@@ -17,6 +18,9 @@ def main() -> None:
     except (FileNotFoundError, ConfigParseError) as error:
         print(f"Error: {error}")
         return
+
+    visualizer = Visualizer(map_config)
+    visualizer.run()
 
     graph = Graph(map_config)
     graph.construct()
@@ -56,4 +60,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    # Visualizer().run()
     main()
