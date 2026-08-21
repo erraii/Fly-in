@@ -29,6 +29,11 @@ class Simulator:
             int,
         ] = {}
 
+        self.connection_outgoing: dict[
+            tuple[str, str],
+            int,
+        ] = {}
+
         self.hub_incoming: dict[str, int] = {}
         self.hub_outgoing: dict[str, int] = {}
 
@@ -96,6 +101,13 @@ class Simulator:
             connection_state.occupants
         )
 
+        outgoing_connection_usage = (
+            self.connection_outgoing.get(
+                connection_key,
+                0,
+            )
+        )
+
         reserved_connection_usage = (
             self.connection_reservations.get(
                 connection_key,
@@ -103,9 +115,14 @@ class Simulator:
             )
         )
 
-        if (
+        projected_connection_usage = (
             current_connection_usage
+            - outgoing_connection_usage
             + reserved_connection_usage
+        )
+
+        if (
+            projected_connection_usage
             >= connection.max_link_capacity
         ):
             return False
@@ -117,6 +134,17 @@ class Simulator:
 
         if destination == self.config.end_hub:
             return True
+
+        if destination_hub.zone == ZoneTypes.RESTRICTED:
+            future_incoming = self.next_hub_incoming.get(
+                destination,
+                0,
+            )
+
+            return (
+                future_incoming
+                < destination_hub.max_drones
+            )
 
         current_occupants = len(
             self.state.hubs[destination].occupants
@@ -137,18 +165,6 @@ class Simulator:
             - outgoing
             + incoming
         )
-
-        if destination_hub.zone == ZoneTypes.RESTRICTED:
-            future_incoming = self.next_hub_incoming.get(
-                destination,
-                0,
-            )
-
-            return (
-                projected_occupancy
-                + future_incoming
-                < destination_hub.max_drones
-            )
 
         return (
             projected_occupancy
@@ -349,6 +365,8 @@ class Simulator:
         planned_moves: list[Move] = []
 
         self.connection_reservations.clear()
+        self.connection_outgoing.clear()
+
         self.hub_incoming.clear()
         self.hub_outgoing.clear()
         self.next_hub_incoming.clear()
@@ -386,8 +404,6 @@ class Simulator:
         return True
 
     def _plan_move(self, drone: Drone) -> Move | None:
-        """Plan the next movement for a drone."""
-
         if drone.status == DroneStatus.DELIVERED:
             return None
 
@@ -407,22 +423,34 @@ class Simulator:
                 f"D{drone.id} has no current hub"
             )
 
-        path = self.solver.get_path(
-            drone.current_hub,
-            self.config.end_hub,
-        )
+        best_destination: str | None = None
+        best_cost = float("inf")
 
-        if len(path) < 2:
-            return None
+        for neighbor in self.graph.get_neighbors(
+            drone.current_hub
+        ):
+            if not self._can_move(drone, neighbor):
+                continue
 
-        destination = path[1]
+            dist_path = self.solver.solve(neighbor)
 
-        if not self._can_move(drone, destination):
+            if self.config.end_hub not in dist_path:
+                continue
+
+            cost_to_goal = dist_path[
+                self.config.end_hub
+            ][0]
+
+            if cost_to_goal < best_cost:
+                best_cost = cost_to_goal
+                best_destination = neighbor
+
+        if best_destination is None:
             return None
 
         return Move(
             drone_id=drone.id,
-            destination=destination,
+            destination=best_destination,
         )
 
     def _reserve_move(
@@ -435,9 +463,30 @@ class Simulator:
         destination = move.destination
 
         if drone.status == DroneStatus.IN_TRANSIT:
-            self.hub_incoming[destination] = (
-                self.hub_incoming.get(destination, 0) + 1
+            if drone.current_connection is None:
+                raise RuntimeError(
+                    f"D{drone.id} has no current connection"
+                )
+
+            connection_key = self.state.connection_key(
+                drone.current_connection[0],
+                drone.current_connection[1],
             )
+
+            self.connection_outgoing[connection_key] = (
+                self.connection_outgoing.get(
+                    connection_key,
+                    0,
+                ) + 1
+            )
+
+            self.hub_incoming[destination] = (
+                self.hub_incoming.get(
+                    destination,
+                    0,
+                ) + 1
+            )
+
             return
 
         if drone.current_hub is None:
