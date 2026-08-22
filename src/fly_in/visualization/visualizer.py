@@ -1,16 +1,18 @@
 import pygame
 
 from config import MapConfig
+from simulation.state import SimulationState
 
 
 class Visualizer:
-    def __init__(self, config: MapConfig) -> None:
+    def __init__(self, config: MapConfig, state: SimulationState) -> None:
         self.width = 1000
         self.height = 700
         self.margin = 50
         pygame.init()
 
         self.config = config
+        self.state = state
         self.screen = pygame.display.set_mode((self.width, self.height))
         self.font = pygame.font.Font(None, 24)
 
@@ -71,6 +73,31 @@ class Visualizer:
                 3,
             )
 
+    def _draw_drones(self) -> None:
+        for hub_name, hub_state in self.state.hubs.items():
+            hub = self.config.hubs[hub_name]
+
+            x, y = self._get_position(
+                hub.x,
+                hub.y,
+            )
+
+            drone_ids = sorted(hub_state.occupants)
+
+            for i, drone_id in enumerate(drone_ids):
+                row = i // 5
+                column = i % 5
+
+                drone_x = x - 20 + column * 10
+                drone_y = y - 20 + row * 10
+
+                pygame.draw.circle(
+                    self.screen,
+                    (0, 255, 255),
+                    (drone_x, drone_y),
+                    4,
+                )
+
     def run(self) -> None:
         running = True
 
@@ -84,49 +111,47 @@ class Visualizer:
             self._draw_connections()
 
             for hub in self.config.hubs.values():
-                # x = 100 + hub.x * 100
-                # y = 350 - hub.y * 100
                 x, y = self._get_position(
                     hub.x,
                     hub.y,
                 )
 
+                try:
+                    color = pygame.Color(hub.color)
+                except ValueError:
+                    color = pygame.Color("white")
+
                 pygame.draw.circle(
                     self.screen,
-                    (255, 255, 255),
+                    color,
                     (x, y),
                     10,
                 )
 
-            mouse_x, mouse_y = pygame.mouse.get_pos()
-
-            for hub in self.config.hubs.values():
-                x, y = self._get_position(
-                    hub.x,
-                    hub.y,
-                )
-
-                pygame.draw.circle(
-                    self.screen,
-                    (255, 255, 255),
-                    (x, y),
-                    10,
-                )
+                mouse_x, mouse_y = pygame.mouse.get_pos()
 
                 distance_x = mouse_x - x
                 distance_y = mouse_y - y
 
+                text = (
+                    f"{hub.name} | "
+                    f"zone: {hub.zone.value} | "
+                    f"capacity: {hub.max_drones}"
+                )
+
                 if distance_x ** 2 + distance_y ** 2 <= 10 ** 2:
                     label = self.font.render(
-                        hub.name,
+                        text,
                         True,
                         (255, 255, 255),
                     )
 
                     self.screen.blit(
                         label,
-                        (x + 15, y - 10),
+                        (self.width - 450, 30),
                     )
+
+            self._draw_drones()
 
             pygame.display.flip()
 

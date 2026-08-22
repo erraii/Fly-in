@@ -19,9 +19,6 @@ def main() -> None:
         print(f"Error: {error}")
         return
 
-    visualizer = Visualizer(map_config)
-    visualizer.run()
-
     graph = Graph(map_config)
     graph.construct()
     dist_path = DijkstraSolver(graph).solve(map_config.start_hub)
@@ -40,6 +37,9 @@ def main() -> None:
 
     simulator = Simulator(
         map_config, graph, drone_list)
+
+    visualizer = Visualizer(map_config, simulator.state)
+    visualizer.run()
 
     # print("---------Hubs----------")
     # for hub, state in simulator.state.hubs.items():
